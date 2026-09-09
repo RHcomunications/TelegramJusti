@@ -76,15 +76,15 @@ class Message_list_item(ListItem):
 
 	@scriptHandler.script(description=_("Edit message"), gesture="kb:backspace")
 	def script_edit_message(self, gesture):
-		self.appModule.activate_option_for_menu((icons_from_context_menu["edit"]), "Messages")
+		self.activate_option_for_menu((icons_from_context_menu["edit"]), "Messages")
 
 	@scriptHandler.script(description=_("Reply to message"), gesture="kb:enter")
 	def script_reply_to_message(self, gesture):
-		self.appModule.activate_option_for_menu((icons_from_context_menu["reply"]), "Messages")
+		self.activate_option_for_menu((icons_from_context_menu["reply"]), "Messages")
 
 	def script_next_message(self, gesture):
 		if self.parent.next: gesture.send()
-		else: self.appModule.script_moveFocusToTextMessage(gesture)
+		else: self.script_moveFocusToTextMessage(gesture)
 
 	def script_next_media(self, gesture, revers=False):
 		self.list_media = self.list_media or [item for item in self.children if item.role == Role.LISTITEM]
@@ -573,7 +573,7 @@ class AppModule(appModuleHandler.AppModule):
 		keyboardHandler.KeyboardInputGesture.fromName(direction).send()
 		self.script_pauseVoiceMessage(None)
 		obj.setFocus()
-		speech.cancelSpeech() if 'speech' in dir() else None
+		speech.cancelSpeech()
 
 	@scriptHandler.script(description=_("Pause voice message"), gesture="kb:alt+p")
 	def script_pauseVoiceMessage(self, gesture):
@@ -599,7 +599,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_answeringCall(self, gesture):
 		gesture.send()
 		desktop = api.getDesktopObject()
-		notification = next((item.firstChild.firstChild for item in desctop.children if hasattr(item.firstChild, 'UIAAutomationId') and item.firstChild.UIAAutomationId == "ToastCenterScrollViewer"), False)
+		notification = next((item.firstChild.firstChild for item in desktop.children if hasattr(item.firstChild, 'UIAAutomationId') and item.firstChild.UIAAutomationId == "ToastCenterScrollViewer"), False)
 		if not notification: return
 		button = next((item for item in notification.children if item.UIAAutomationId == "VerbButton"), None)
 		if button: button.doAction()
@@ -691,10 +691,6 @@ class AppModule(appModuleHandler.AppModule):
 			target = target.previous
 		if i < index: ui.message(_("This chat is empty"))
 
-	@scriptHandler.script(description=_("Delete message or chat"), gesture="kb:alt+delete")
-	def script_delete_message(self, gesture):
-		self.deleteMessageAndChat(api.getFocusObject())
-
 	def deleteMessageAndChat(self, obj, isComplete=False):
 		if not obj: return
 		if self.is_message_object(obj):
@@ -728,7 +724,7 @@ class AppModule(appModuleHandler.AppModule):
 			elif obj.parent.UIAAutomationId == "ChatsList":
 				self.saved_items.save("last focused chat", obj)
 			elif self.isSkipName:
-				speech.cancelSpeech() if 'speech' in dir() else None
+				speech.cancelSpeech()
 				self.isSkipName -= 1
 				return True
 		elif self.isOpenProfile:
@@ -753,13 +749,6 @@ class AppModule(appModuleHandler.AppModule):
 			elif obj.role == Role.EDITABLETEXT and obj.UIAAutomationId == "TextField":
 				clsList.insert(0, EditableTextOverlay)
 		except: pass
-
-	# ========== UTILITIES ==========
-
-	def get_settings_panel(self):
-		settings_panel = next((item for item in self.getElements() if item.role in (Role.PANE, Role.LIST) and item.UIAAutomationId in ("ScrollingHost", "List", "") and (item.previous.UIAAutomationId == "DetailHeaderPresenter" or item.location.width > 320)), None)
-		if not settings_panel: return False
-		return next((item for item in settings_panel.children if State.FOCUSABLE in item.states), settings_panel.firstChild)
 
 	# ========== GESTURES ==========
 
