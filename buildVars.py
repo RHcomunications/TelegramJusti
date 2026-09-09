@@ -88,9 +88,12 @@ addon_sourceURL="https://github.com/JustiCode/TelegramJusti",
 	# Documentation filename
 	addon_docFileName="readme.html",
 
-	# NVDA compatibility
+# NVDA compatibility
 	addon_minimumNVDAVersion="2026.1",
-addon_lastTestedNVDAVersion="2026.1.1",
+	addon_lastTestedNVDAVersion="2026.2",
+
+	# Pip packages to bundle with the add-on
+	addon_pipPackages=["configobj"],
 
 	# Update channel
 	addon_updateChannel=None,

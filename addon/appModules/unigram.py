@@ -7,12 +7,9 @@ Compatible con Unigram Plus features.
 Autor: Mauro Ocampo - JustiCode
 """
 
-MAX_NAME_LENGTH = 2000
-
 import time
 import os
 import re
-import winsound
 import queueHandler
 import speech
 import api
@@ -25,12 +22,12 @@ import logHandler
 import scriptHandler
 import addonHandler
 import editableText
+import textInfos
 from addonHandler import initTranslation
 from nvwave import playWaveFile
 from threading import Timer
 from controlTypes import Role, State
 import languageHandler
-from ui import browseableMessage
 from NVDAObjects.UIA import UIA, ListItem
 
 initTranslation()
