@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Telegram Justi 1.0
-Complemento NVDA para Telegram Unigram.
+Telegram Justi 1.2.0
+Complemento NVDA para Telegram Unigram Preview 12.10.3.0.
 
 Autor:
 Mauro Ocampo - JustiCode
@@ -26,9 +26,73 @@ log = logHandler.log
 
 
 class AppModule(appModuleHandler.AppModule):
-    """AppModule principal para Telegram Unigram."""
+    """AppModule principal para Telegram Unigram Preview 12.10.3.0."""
 
     lastAudioGesture = 0
+
+    # =========================================================
+    # AutomationIDs compatibles con Unigram Preview 12.10.3.0
+    # =========================================================
+
+    CANCEL_RECORDING_IDS = (
+        "ComposerHeaderCancel",
+        "ButtonCancelRecording",
+        "btnVoiceMessage",
+    )
+
+    VOICE_MESSAGE_IDS = (
+        "Recognize",
+        "RecognizedText",
+        "Subtitle",
+    )
+
+    PROFILE_IDS = (
+        "Profile",
+    )
+
+    CALL_IDS = (
+        "Call",
+    )
+
+    VIDEO_CALL_IDS = (
+        "VideoCall",
+    )
+
+    ATTACH_IDS = (
+        "ButtonAttach",
+    )
+
+    COMPOSE_IDS = (
+        "ComposeButton",
+    )
+
+    TEXT_FIELD_IDS = (
+        "TextField",
+    )
+
+    NAVIGATION_IDS = (
+        "Photo",
+    )
+
+    BACK_IDS = (
+        "BackButton",
+    )
+
+    END_CALL_NAMES = (
+        "finalizar",
+        "End",
+        "Leave",
+    )
+
+    PLAY_NAMES = (
+        "Reproducir",
+        "Play",
+    )
+
+    PAUSE_NAMES = (
+        "Pausar",
+        "Pause",
+    )
 
     # =========================================================
     # Utilidades internas
@@ -53,12 +117,7 @@ class AppModule(appModuleHandler.AppModule):
             )
 
     def findObjectByName(self, obj, target):
-        """
-        """
-        """
-        Busca recursivamente un objeto
-        por coincidencia parcial de nombre.
-        """
+        """Busca recursivamente un objeto por coincidencia parcial de nombre."""
 
         if not obj:
             return None
@@ -131,6 +190,32 @@ class AppModule(appModuleHandler.AppModule):
 
         return None
 
+    def findObjectByAutomationIDs(self, obj, targetIDs):
+        """Busca un objeto por cualquiera de varias AutomationIDs."""
+
+        if not obj or not targetIDs:
+            return None
+
+        for targetID in targetIDs:
+            result = self.findObjectByAutomationID(obj, targetID)
+            if result:
+                return result
+
+        return None
+
+    def findObjectByNameInList(self, obj, names):
+        """Busca un objeto por cualquiera de varios nombres."""
+
+        if not obj or not names:
+            return None
+
+        for name in names:
+            result = self.findObjectByName(obj, name)
+            if result:
+                return result
+
+        return None
+
     def activateObject(self, obj):
         """
         Activa un objeto accesible.
@@ -162,6 +247,7 @@ class AppModule(appModuleHandler.AppModule):
             pass
 
         return False
+
     def activateNamedControl(
         self,
         targetName,
@@ -169,9 +255,7 @@ class AppModule(appModuleHandler.AppModule):
         errorMessage=None,
         beepFrequency=1000
     ):
-        """
-        Busca y activa un control por nombre.
-        """
+        """Busca y activa un control por nombre."""
 
         fg = api.getForegroundObject()
 
@@ -208,28 +292,50 @@ class AppModule(appModuleHandler.AppModule):
 
         return False
 
+    def debugDumpElements(self, obj, depth=0):
+        """
+        Imprime en el log la jerarquía de elementos accesibles.
+        Útil para descubrir nuevos AutomationIDs en actualizaciones de Unigram.
+        """
+
+        indent = "  " * depth
+
+        try:
+            automationID = getattr(obj, "UIAAutomationId", "") or ""
+            name = obj.name or ""
+            role = obj.role
+            log.debug(
+                "%s%s | AutomationID: %s | Role: %s | Name: %s",
+                indent,
+                type(obj).__name__,
+                automationID,
+                role,
+                name
+            )
+        except Exception:
+            pass
+
+        try:
+            child = obj.firstChild
+            while child:
+                self.debugDumpElements(child, depth + 1)
+                child = child.next
+        except Exception:
+            pass
+
     # =========================================================
     # Eventos
     # =========================================================
 
     def event_gainFocus(self, obj, nextHandler):
-        """
-        Enfoca automáticamente
-        la lista de chats al iniciar Unigram.
-        """
+        """Enfoca automáticamente la lista de chats al iniciar Unigram."""
 
         try:
+            automationID = getattr(obj, "UIAAutomationId", "") or ""
 
-            if (
-                getattr(
-                obj,
-                "UIAAutomationId",
-                    ""
-                ) == "Photo"
-            ):
+            if automationID in self.NAVIGATION_IDS:
 
                 def focusChats():
-
                     self.sendKey("tab")
                     time.sleep(0.1)
 
@@ -238,19 +344,14 @@ class AppModule(appModuleHandler.AppModule):
 
                     self.sendKey("tab")
 
-                wx.CallLater(
-    600,
-    focusChats
-)
+                wx.CallLater(600, focusChats)
 
         except Exception:
-            log.exception(
-                "Error enfocando lista de chats"
-            )
+            log.exception("Error enfocando lista de chats")
 
         nextHandler()
 
-        # =========================================================
+    # =========================================================
     # Scripts
     # =========================================================
 
@@ -264,28 +365,19 @@ class AppModule(appModuleHandler.AppModule):
         currentTime = time.time()
 
         try:
-
             if (
-                currentTime - self.lastAudioGesture
-                < 0.5
+                currentTime - self.lastAudioGesture < 0.5
             ):
-
                 self.sendKey("control+enter")
-
                 tones.beep(1200, 100)
-
             else:
-
                 self.sendKey("control+r")
-
                 tones.beep(700, 100)
 
             self.lastAudioGesture = currentTime
 
         except Exception:
-            log.exception(
-                "Error gestionando audio"
-            )
+            log.exception("Error gestionando audio")
 
     @scriptHandler.script(
         description=_("Cancelar grabación de mensaje de voz"),
@@ -293,27 +385,27 @@ class AppModule(appModuleHandler.AppModule):
         gesture="kb:control+shift+r"
     )
     def script_cancelVoiceMessage(self, gesture):
+        """Cancela la grabación de un mensaje de voz."""
 
         fg = api.getForegroundObject()
 
-        button = self.findObjectByAutomationID(
+        button = self.findObjectByAutomationIDs(
             fg,
-            "ButtonCancelRecording"
+            self.CANCEL_RECORDING_IDS
         )
 
         if not button:
             tones.beep(200, 50)
+            ui.message(_("No se encontró botón de cancelación"))
             return
 
         try:
             button.doAction()
-
             tones.beep(500, 80)
+            ui.message(_("Grabación cancelada"))
 
         except Exception:
-            ui.message(
-                "No se pudo cancelar la grabación"
-            )
+            ui.message("No se pudo cancelar la grabación")
 
     @scriptHandler.script(
         description=_("Reproducir o pausar mensaje de voz"),
@@ -324,55 +416,43 @@ class AppModule(appModuleHandler.AppModule):
         """Reproduce o pausa mensajes de voz."""
 
         try:
-
             focus = api.getFocusObject()
 
-            if focus:
+            if not focus:
+                gesture.send()
+                return
 
-                audioMessage = self.findObjectByAutomationID(
+            audioMessage = self.findObjectByAutomationIDs(
+                focus,
+                self.VOICE_MESSAGE_IDS
+            )
+
+            if audioMessage:
+                try:
+                    focus.doAction()
+                    tones.beep(900, 50)
+                    return
+                except Exception:
+                    pass
+
+                playButton = self.findObjectByNameInList(
                     focus,
-                    "Recognize"
+                    self.PLAY_NAMES
                 )
 
-                if audioMessage:
-
-                    try:
-
-                        focus.doAction()
-
-                        tones.beep(900, 50)
-
-                        return
-
-                    except Exception:
-                        pass
-
-                    playButton = self.findObjectByName(
+                if not playButton:
+                    playButton = self.findObjectByNameInList(
                         focus,
-                        "Reproducir"
+                        self.PAUSE_NAMES
                     )
 
-                    if not playButton:
-
-                        playButton = self.findObjectByName(
-                            focus,
-                            "Pausar"
-                        )
-
-                    if playButton:
-
-                        self.activateObject(
-                            playButton
-                        )
-
-                        tones.beep(900, 50)
-
-                        return
+                if playButton:
+                    self.activateObject(playButton)
+                    tones.beep(900, 50)
+                    return
 
         except Exception:
-            log.exception(
-                "Error reproduciendo audio"
-            )
+            log.exception("Error reproduciendo audio")
 
         gesture.send()
 
@@ -386,13 +466,13 @@ class AppModule(appModuleHandler.AppModule):
 
         fg = api.getForegroundObject()
 
-        button = self.findObjectByAutomationID(
+        button = self.findObjectByAutomationIDs(
             fg,
-            "Profile"
+            self.PROFILE_IDS
         )
 
         if not button:
-            ui.message("Perfil no encontrado")
+            ui.message(_("Perfil no encontrado"))
             return
 
         try:
@@ -412,13 +492,13 @@ class AppModule(appModuleHandler.AppModule):
 
         fg = api.getForegroundObject()
 
-        button = self.findObjectByAutomationID(
+        button = self.findObjectByAutomationIDs(
             fg,
-            "Call"
+            self.CALL_IDS
         )
 
         if not button:
-            ui.message("Llamar no encontrado")
+            ui.message(_("Llamar no encontrado"))
             return
 
         try:
@@ -438,13 +518,13 @@ class AppModule(appModuleHandler.AppModule):
 
         fg = api.getForegroundObject()
 
-        button = self.findObjectByAutomationID(
+        button = self.findObjectByAutomationIDs(
             fg,
-            "VideoCall"
+            self.VIDEO_CALL_IDS
         )
 
         if not button:
-            ui.message("NO ENCONTRÉ VIDEOCALL")
+            ui.message(_("Videollamada no encontrada"))
             return
 
         try:
@@ -452,7 +532,7 @@ class AppModule(appModuleHandler.AppModule):
             tones.beep(1200, 100)
 
         except Exception:
-            ui.message("ERROR VIDEOCALL")
+            ui.message("Error en videollamada")
 
     @scriptHandler.script(
         description=_("Finalizar llamada"),
@@ -464,13 +544,19 @@ class AppModule(appModuleHandler.AppModule):
 
         fg = api.getForegroundObject()
 
-        button = self.findObjectByName(
+        button = self.findObjectByNameInList(
             fg,
-            "finalizar"
+            self.END_CALL_NAMES
         )
 
         if not button:
-            ui.message("NO ENCONTRÉ FINALIZAR")
+            button = self.findObjectByAutomationIDs(
+                fg,
+                self.END_CALL_NAMES
+            )
+
+        if not button:
+            ui.message(_("Botón finalizar no encontrado"))
             return
 
         try:
@@ -478,7 +564,7 @@ class AppModule(appModuleHandler.AppModule):
             tones.beep(500, 80)
 
         except Exception:
-            ui.message("ERROR FINALIZAR")
+            ui.message("Error al finalizar llamada")
 
     @scriptHandler.script(
         description=_("Adjuntar multimedia"),
@@ -486,15 +572,17 @@ class AppModule(appModuleHandler.AppModule):
         gesture="kb:control+shift+a"
     )
     def script_attachMedia(self, gesture):
+        """Adjunta archivos multimedia."""
+
         fg = api.getForegroundObject()
 
-        button = self.findObjectByAutomationID(
+        button = self.findObjectByAutomationIDs(
             fg,
-            "ButtonAttach"
+            self.ATTACH_IDS
         )
 
         if not button:
-            ui.message("NO ENCONTRÉ BUTTONATTACH")
+            ui.message(_("Botón adjuntar no encontrado"))
             return
 
         try:
@@ -502,7 +590,7 @@ class AppModule(appModuleHandler.AppModule):
             tones.beep(700, 80)
 
         except Exception:
-            ui.message("ERROR BUTTONATTACH")
+            ui.message("Error al adjuntar")
 
     @scriptHandler.script(
         description=_("Abrir nuevo chat"),
@@ -514,13 +602,13 @@ class AppModule(appModuleHandler.AppModule):
 
         fg = api.getForegroundObject()
 
-        button = self.findObjectByAutomationID(
+        button = self.findObjectByAutomationIDs(
             fg,
-            "ComposeButton"
+            self.COMPOSE_IDS
         )
 
         if not button:
-            ui.message("Botón nuevo chat no encontrado")
+            ui.message(_("Botón nuevo chat no encontrado"))
             return
 
         try:
@@ -540,13 +628,13 @@ class AppModule(appModuleHandler.AppModule):
 
         fg = api.getForegroundObject()
 
-        edit = self.findObjectByAutomationID(
+        edit = self.findObjectByAutomationIDs(
             fg,
-            "TextField"
+            self.TEXT_FIELD_IDS
         )
 
         if not edit:
-            ui.message("Cuadro de mensaje no encontrado")
+            ui.message(_("Cuadro de mensaje no encontrado"))
             return
 
         try:
@@ -562,15 +650,17 @@ class AppModule(appModuleHandler.AppModule):
         gesture="kb:control+shift+m"
     )
     def script_openNavigationMenu(self, gesture):
+        """Abre el menú de navegación."""
+
         fg = api.getForegroundObject()
 
-        button = self.findObjectByAutomationID(
+        button = self.findObjectByAutomationIDs(
             fg,
-            "Photo"
+            self.NAVIGATION_IDS
         )
 
         if not button:
-            ui.message("Menú no encontrado")
+            ui.message(_("Menú no encontrado"))
             return
 
         try:
@@ -590,9 +680,9 @@ class AppModule(appModuleHandler.AppModule):
 
         fg = api.getForegroundObject()
 
-        button = self.findObjectByAutomationID(
+        button = self.findObjectByAutomationIDs(
             fg,
-            "BackButton"
+            self.BACK_IDS
         )
 
         if not button:
@@ -601,15 +691,29 @@ class AppModule(appModuleHandler.AppModule):
 
         try:
             button.doAction()
-
             tones.beep(800, 80)
 
         except Exception:
-            ui.message(
-                _("No se pudo volver a la lista de chats")
-            )
+            ui.message(_("No se pudo volver a la lista de chats"))
+
+    # =========================================================
+    # Utilidad de diagnóstico
+    # =========================================================
+
+    @scriptHandler.script(
+        description=_("Registra la jerarquía de elementos en el log (solo desarrollo)"),
+        category=_("Telegram Justi"),
+        gesture="kb:control+shift+d"
+    )
+    def script_debugDumpElements(self, gesture):
+        """Registra la jerarquía de elementos accesibles para debugging."""
+
+        fg = api.getForegroundObject()
+        log.debug("=== Jerarquía de elementos Unigram ===")
+        self.debugDumpElements(fg)
+        log.debug("=== Fin de la jerarquía ===")
+        ui.message(_("Jerarquía registrada en el log"))
 
     # =========================================================
     # Gestos
     # =========================================================
-

@@ -1,6 +1,6 @@
-\# TelegramJusti 1.2.0
+\# TelegramJusti 1.3.0
 
-Complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram.
+Complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram Preview 12.10.3.0.
 
 
 
@@ -55,6 +55,19 @@ TelegramJusti amplía la accesibilidad de Telegram mediante atajos de teclado, a
 \* Unigram.
 
 
+
+\## Novedades de la versión 1.3.0
+
+* Compatibilidad con Unigram Preview 12.10.3.0.
+* Actualización de AutomationIDs: se añadieron IDs alternativos para cada control.
+* `ComposerHeaderCancel` como fallback para cancelación de grabación.
+* `RecognizedText` como fallback para detección de mensajes de voz.
+* Búsqueda multi-IDs para todos los botones principales.
+* Se añadieron nombres alternativos para botón finalizar (End, Leave).
+* Se añadieron nombres alternativos para reproducción (Play, Pause).
+* Nuevo script de diagnóstico Ctrl+Shift+D para registrar jerarquía de elementos.
+* Mejora en la detección de perfil y navegación mediante listas de IDs compatibles.
+* Se mejoró la robustez de todas las búsquedas de UI Automation.
 
 \## Novedades de la versión 1.2.0
 
@@ -116,6 +129,8 @@ Copyright © 2026 Mauro Ocampo - JustiCode.
 - **1.0.0** — Primera versión pública del complemento.
 
 - **1.2.0** — Nuevas funciones de navegación y gestión de mensajes de voz, migración a AutomationID, modernización mediante `@script` y gestos reasignables desde gestos de entrada de NVDA.
+
+- **1.3.0** — Compatibilidad con Unigram Preview 12.10.3.0. Actualización de AutomationIDs con múltiples fallbacks, nuevo script de diagnóstico y mejora de robustez en todas las búsquedas de UI Automation.
 
 Finalmente, gracias a toda la comunidad de NVDA  y Justicia Ciega, cuya experiencia compartida hace posible seguir construyendo herramientas para todos y todas.
 
