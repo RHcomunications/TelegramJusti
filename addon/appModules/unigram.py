@@ -7,6 +7,8 @@ Compatible con Unigram Plus features.
 Autor: Mauro Ocampo - JustiCode
 """
 
+MAX_NAME_LENGTH = 2000
+
 import time
 import os
 import re
@@ -138,7 +140,7 @@ class Saved_items:
 		if not focus: return False
 		id = focus.windowHandle
 		try: return self._items[id][key]
-		except: return False
+		except Exception: return False
 	def save(self, key, obj):
 		focus = api.getFocusObject()
 		if not focus: return
@@ -181,11 +183,11 @@ class AppModule(appModuleHandler.AppModule):
 
 	def get_first_item(self):
 		try: return api.getForegroundObject().lastChild.previous.firstChild
-		except: return []
+		except Exception: return []
 
 	def getElements(self):
 		try: return api.getForegroundObject().lastChild.previous.children
-		except: return []
+		except Exception: return []
 
 	def get_settings_panel(self):
 		settings_panel = next((item for item in self.getElements() if item.role in (Role.PANE, Role.LIST) and item.UIAAutomationId in ("ScrollingHost", "List", "") and (item.previous.UIAAutomationId == "DetailHeaderPresenter" or item.location.width > 320)), None)
@@ -211,7 +213,7 @@ class AppModule(appModuleHandler.AppModule):
 
 	def is_message_object(self, obj):
 		try: return obj.UIAAutomationId == "Message_item"
-		except: return False
+		except Exception: return False
 
 	def activate_option_for_menu(self, option, list_name=False):
 		if self.execute_context_menu_option: return False
@@ -224,7 +226,7 @@ class AppModule(appModuleHandler.AppModule):
 
 	def fixedDoAction(self, obj):
 		try: obj.doAction(); return
-		except: pass
+		except Exception: pass
 		p = obj.location.center
 		oldX, oldY = winUser.getCursorPos()
 		winUser.setCursorPos(p.x, p.y)
@@ -236,10 +238,10 @@ class AppModule(appModuleHandler.AppModule):
 		if not obj: return False
 		try:
 			obj.doAction(); return True
-		except: pass
+		except Exception: pass
 		try:
 			obj.setFocus(); time.sleep(0.1); self.sendKey("space"); return True
-		except: pass
+		except Exception: pass
 		return False
 
 	def sendKey(self, keyName):
@@ -253,14 +255,14 @@ class AppModule(appModuleHandler.AppModule):
 		try:
 			name = obj.name or ""
 			if target.lower() in name.lower(): return obj
-		except: pass
+		except Exception: pass
 		try:
 			child = obj.firstChild
 			while child:
 				result = self.findObjectByName(child, target)
 				if result: return result
 				child = child.next
-		except: pass
+		except Exception: pass
 		return None
 
 	def findObjectByAutomationID(self, obj, targetID):
@@ -268,14 +270,14 @@ class AppModule(appModuleHandler.AppModule):
 		try:
 			automationID = getattr(obj, "UIAAutomationId", "") or ""
 			if automationID == targetID: return obj
-		except: pass
+		except Exception: pass
 		try:
 			child = obj.firstChild
 			while child:
 				result = self.findObjectByAutomationID(child, targetID)
 				if result: return result
 				child = child.next
-		except: pass
+		except Exception: pass
 		return None
 
 	def findObjectByAutomationIDs(self, obj, targetIDs):
@@ -316,12 +318,13 @@ class AppModule(appModuleHandler.AppModule):
 		if not conf.get("announce_endthe_message") and hasattr(obj, 'index_last_part_in_message') and obj.index_last_part_in_message:
 			obj.name = obj.name[:obj.index_last_part_in_message]
 		obj.name = sender + obj.name
+		if len(obj.name) > MAX_NAME_LENGTH: obj.name = obj.name[:MAX_NAME_LENGTH]
 		if State.SELECTED in obj.states: obj.name = _("Selected") + ". " + obj.name
 		if conf.get("voice_the_presence_of_a_reaction") and reactions:
 			try:
 				reaction_names = [r.name for r in reactions if r and r.name]
 				if reaction_names: obj.name += "\n" + _("Reactions") + ": " + ", ".join(reaction_names)
-			except: pass
+			except Exception: pass
 		return obj.name
 
 	def processing_of_answer_options_in_surveys(self, obj):
@@ -366,7 +369,7 @@ class AppModule(appModuleHandler.AppModule):
 		obj = self.getMessagesElement()
 		try:
 			obj.lastChild.setFocus(); keyboardHandler.KeyboardInputGesture.fromName("end").send()
-		except:
+		except Exception:
 			if obj and not obj.lastChild: ui.message(_("This chat is empty")); return True
 			branch_list = self.get_branch_list()
 			if branch_list: branch_list.firstChild.setFocus(); return
@@ -380,7 +383,7 @@ class AppModule(appModuleHandler.AppModule):
 	def script_goToTheLastUnreadMessage(self, gesture):
 		messages = self.getMessagesElement()
 		try: lastObj = messages.lastChild
-		except: ui.message(_("No open chat")); return False
+		except Exception: ui.message(_("No open chat")); return False
 		targetButton = False
 		while lastObj:
 			try:
@@ -388,7 +391,7 @@ class AppModule(appModuleHandler.AppModule):
 				if first and first.role == Role.BUTTON:
 					first_child = first.firstChild
 					if first_child and first_child.next and first_child.next.name == "\ue0e5": targetButton = lastObj; break
-			except: pass
+			except Exception: pass
 			lastObj = lastObj.previous
 		if targetButton: targetButton.setFocus()
 		else: ui.message(_("No unread messages"))
@@ -440,7 +443,7 @@ class AppModule(appModuleHandler.AppModule):
 				textMessage = obj.name
 				if textMessage: api.copyToClip(textMessage.strip()); ui.message(_("Link copied"))
 				else: ui.message(_("This message does not contain text"))
-		except: pass
+		except Exception: pass
 
 	@scriptHandler.script(description=_("Delete a message or chat"), gesture="kb:alt+delete")
 	def script_deletion(self, gesture):
@@ -522,10 +525,10 @@ class AppModule(appModuleHandler.AppModule):
 			audioMessage = self.findObjectByAutomationIDs(focus, ("Recognize", "RecognizedText", "Subtitle"))
 			if audioMessage:
 				try: focus.doAction(); tones.beep(900, 50); return
-				except: pass
+				except Exception: pass
 				playButton = self.findObjectByNameInList(focus, ("Reproducir", "Play", "Pausar", "Pause"))
 				if playButton: self.activateObject(playButton); tones.beep(900, 50); return
-		except: log.exception("Error playing audio")
+		except Exception: log.exception("Error playing audio")
 		gesture.send()
 
 	@scriptHandler.script(description=_("Increase/decrease playback speed"), gesture="kb:alt+s")
@@ -539,7 +542,7 @@ class AppModule(appModuleHandler.AppModule):
 	@scriptHandler.script(description=_("Close audio player"), gesture="kb:alt+e")
 	def script_closingVoiceMessage(self, gesture):
 		try: targetButton = next((item for item in self.getElements()[1:] if item.previous.role == Role.TOGGLEBUTTON and item.previous.UIAAutomationId == "ShuffleButton"), False)
-		except: targetButton = False
+		except Exception: targetButton = False
 		if targetButton:
 			lastFocus = api.getFocusObject(); targetButton.doAction(); lastFocus.setFocus()
 			ui.message(_("The audio player has been closed"))
@@ -555,7 +558,7 @@ class AppModule(appModuleHandler.AppModule):
 			else: return
 			button.doAction(); obj.setFocus()
 			try: playWaveFile(baseDir + "RecognitionStart.wav")
-			except: ui.message(_("Conversion started"))
+			except Exception: ui.message(_("Conversion started"))
 		else: ui.message(_("Button not found"))
 
 	@scriptHandler.script(description=_("Rewind voice message"), gesture="kb:control+alt+leftArrow")
@@ -708,7 +711,7 @@ class AppModule(appModuleHandler.AppModule):
 			count_rows = [len(item.split("\n")) for item in blocks]
 			index = count_rows.index(max(count_rows))
 			TextWindow(blocks[index].replace("* ", "").replace("## ", "").strip(), _("List of shortcuts"), readOnly=True)
-		except: ui.message(_("Could not open help"))
+		except Exception: ui.message(_("Could not open help"))
 
 	@scriptHandler.script(description=_("Toggle live chat reading"), gesture="kb:alt+l")
 	def script_toggle_live_chat(self, gesture):
@@ -719,6 +722,9 @@ class AppModule(appModuleHandler.AppModule):
 	def event_gainFocus(self, obj, nextHandler):
 		if obj.role == Role.LISTITEM:
 			if self.is_message_object(obj):
+				name = getattr(obj, 'name', "")
+				if name and len(name) > MAX_NAME_LENGTH:
+					obj.name = name[:MAX_NAME_LENGTH]
 				self.saved_items.save("last focus object", obj)
 				obj.name = self.action_message_focus(obj)
 			elif obj.parent.UIAAutomationId == "ChatsList":
@@ -733,7 +739,7 @@ class AppModule(appModuleHandler.AppModule):
 			if panel: panel.firstChild.setFocus()
 		elif self.execute_context_menu_option:
 			try: targetButton = next((item for item in obj.parent.children if item.firstChild.name in self.execute_context_menu_option), False)
-			except: targetButton = False
+			except Exception: targetButton = False
 			self.execute_context_menu_option = False
 			if targetButton: targetButton.doAction()
 			else: self.keys["escape"].send()
@@ -748,7 +754,7 @@ class AppModule(appModuleHandler.AppModule):
 				elif self.is_message_object(obj): clsList.insert(0, Message_list_item)
 			elif obj.role == Role.EDITABLETEXT and obj.UIAAutomationId == "TextField":
 				clsList.insert(0, EditableTextOverlay)
-		except: pass
+		except Exception: pass
 
 	# ========== GESTURES ==========
 
@@ -768,7 +774,7 @@ class EditableTextOverlay(editableText.EditableText):
 		if gesture.mainKeyName != "upArrow": return super().script_caret_moveByLine(gesture)
 		info = None
 		try: info = self.makeTextInfo(textInfos.POSITION_ALL)
-		except: pass
+		except Exception: pass
 		if info and info.text == "":
 			if conf.get("action_when_pressing_up_arrow_in_text_field") == "to_messages": self.appModule.script_toLastMessage(None)
 			elif conf.get("action_when_pressing_up_arrow_in_text_field") == "normal": gesture.send()
@@ -780,7 +786,7 @@ class EditableTextOverlay(editableText.EditableText):
 		gesture.send()
 		info = None
 		try: info = self.makeTextInfo(textInfos.POSITION_ALL)
-		except: pass
+		except Exception: pass
 		if info and info.text.strip() != "": Timer(0.2, lambda: self.appModule.script_toLastMessage(None)).start()
 
 	__gestures = {

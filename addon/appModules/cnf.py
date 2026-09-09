@@ -5,6 +5,7 @@ import os
 import globalVars
 import languageHandler
 import addonHandler
+import logHandler
 addonHandler.initTranslation()
 
 lang = languageHandler.getLanguage().split("_")[0]
@@ -66,8 +67,15 @@ class cnf:
 		self.conf[key] = value
 		self.conf.write()
 
-try: conf = cnf()
-except:
-	path = os.path.join(globalVars.appArgs.configPath, "TelegramJusti.ini")
-	os.remove(path)
+conf = None
+try:
 	conf = cnf()
+except Exception:
+	logHandler.log.exception("Error loading TelegramJusti configuration")
+	try:
+		path = os.path.join(globalVars.appArgs.configPath, "TelegramJusti.ini")
+		if os.path.exists(path):
+			os.remove(path)
+		conf = cnf()
+	except Exception:
+		logHandler.log.exception("Error recreating TelegramJusti configuration")

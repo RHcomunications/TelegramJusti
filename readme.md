@@ -129,6 +129,19 @@ Un agradecimiento especial a Héctor Benítez de NVDA.ES por su paciencia, humil
 
 Asimismo, mi agradecimiento a José Manuel Delicado por sus comentarios y aportes técnicos, fundamentales durante el proceso de migración de scripts, modernización mediante `@script`, eliminación del sistema heredado de gestos y sustitución progresiva de llamadas basadas en etiquetas localizadas por AutomationID, contribuyendo a un complemento más robusto, estable y multilingüe.
 
+## Seguridad
+
+TelegramJusti sigue las políticas de seguridad de NVDA para prevenir inyección de código y otras vulnerabilidades:
+
+* Sin uso de `eval()`, `exec()`, o `compile()` sobre datos de usuario.
+* Validación de longitud en nombres de objetos (máximo 2000 caracteres).
+* Configuración validada mediante `ConfigObj` con esquema estricto.
+* Todos los `except` usan `except Exception:` (no bare `except:`).
+* Sin deserialización de datos no confiables.
+* Dependencias empaquetadas y API pública de NVDA utilizada exclusivamente.
+
+Véase [SECURITY.md](SECURITY.md) para más detalles.
+
 ## Licencia
 
 TelegramJusti se distribuye bajo la licencia GNU General Public License v2 (GPL v2) o posterior.
