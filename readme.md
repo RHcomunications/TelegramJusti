@@ -69,6 +69,19 @@ TelegramJusti amplía la accesibilidad de Telegram mediante atajos de teclado, a
 * Mejora en la detección de perfil y navegación mediante listas de IDs compatibles.
 * Se mejoró la robustez de todas las búsquedas de UI Automation.
 
+### Nuevas funcionalidades
+
+* **Mensajes**: Editar (Retroceso), responder (Enter), reenviar (Alt+F), eliminar (Alt+Delete / Shift+Delete).
+* **Navegación rápida**: Alt+1 a Alt+6 para lista de chats, último mensaje, no leídos, carpetas, perfil, hilos.
+* **Audio**: Velocidad de reproducción (Alt+S), cerrar reproductor (Alt+E), convertir voz a texto (NVDA+Alt+R).
+* **Ventana emergente**: Mostrar texto (Alt+C), abrir comentarios (Ctrl+Alt+C), copiar mensaje (Ctrl+C).
+* **Rebobinado**: Rebobinar/reavanzar voz (Ctrl+Alt+←/→).
+* **Búsqueda**: Ir a resultados (Alt+I), siguiente/anterior (F3/Shift+F3).
+* **Llamadas**: Aceptar (Alt+Y), rechazar/terminar (Alt+N), silenciar (Alt+A), cámara (Alt+V).
+* **Configuración**: Diálogo de ajustes NVDA (NVDA+Alt+U), configuración persistente.
+* **Soporte**: 17 idiomas, efectos de sonido, TextWindow, GlobalPlugin.
+* **Accesibilidad completa**: Menú contextual integrado, procesamiento dinámico de elementos.
+
 \## Novedades de la versión 1.2.0
 
 * Añadida función para cancelar grabación de mensajes de voz mediante Ctrl+Shift+R.
