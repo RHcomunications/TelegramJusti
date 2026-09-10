@@ -19,27 +19,36 @@ addon_info = AddonInfo(
 	addon_name="TelegramJusti",
 
 	addon_summary=_(
-    "TelegramJusti_1.3.0 complemento híbrido de accesibilidad compatible con Unigram Preview 12.10.3.0 y Telegram Desktop"
+    "TelegramJusti complemento híbrido de accesibilidad compatible con Unigram Preview (12.10.3.0 - 12.10.4.0) y Telegram Desktop"
 ),
 
 	# Add-on description
 	addon_description=_(
-    """TelegramJusti es un complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram Preview 12.10.3.0.
+    """TelegramJusti es un complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram Preview (12.10.3.0 y 12.10.4.0 AMD64).
 
 Proporciona atajos de teclado, automatización accesible y navegación optimizada para usuarios de NVDA.
 
 Incluye funciones para mensajes de voz, llamadas, videollamadas, navegación rápida entre chats, acceso a perfiles y adjuntos multimedia.
 
-Compatible con Unigram Preview 12.10.3.0 AMD64.
+Compatible con Unigram Preview 12.10.3.0 y 12.10.4.0 AMD64.
 Los gestos son personalizables desde Gestos de Entrada de NVDA."""
 ),
 
 	# Version
-	addon_version="1.3.0",
+	addon_version="1.3.1",
 
  # Changelog
 addon_changelog=_(
-    """Versión 1.3.0
+    """Versión 1.3.1
+
+  Novedades:
+
+  * Compatibilidad con Unigram Preview 12.10.4.0 AMD64.
+  * Enrutamiento híbrido automático: selección transparente entre Unigram Preview (UWP) y Telegram Desktop (Qt).
+  * Corrección de importaciones y variables críticas para compatibilidad con NVDA 2026.2.
+  * Reestructuración canónica de plugins globales (TelegramJusti) y tareas de instalación según los estándares de NVDA.
+
+Versión 1.3.0
 
   Novedades:
 
@@ -88,12 +97,9 @@ addon_sourceURL="https://github.com/JustiCode/TelegramJusti",
 	# Documentation filename
 	addon_docFileName="readme.html",
 
-# NVDA compatibility
+	# NVDA compatibility
 	addon_minimumNVDAVersion="2026.1",
 	addon_lastTestedNVDAVersion="2026.2",
-
-	# Pip packages to bundle with the add-on
-	addon_pipPackages=["configobj"],
 
 	# Update channel
 	addon_updateChannel=None,
@@ -105,11 +111,13 @@ addon_sourceURL="https://github.com/JustiCode/TelegramJusti",
 
 # Python source files
 pythonSources = [
+	"addon/appModules/telegram.py",
 	"addon/appModules/unigram.py",
 	"addon/appModules/cnf.py",
 	"addon/appModules/data.py",
 	"addon/appModules/text_window.py",
-	"addon/appModules/installTasks.py",
+	"addon/globalPlugins/TelegramJusti/__init__.py",
+	"addon/installTasks.py",
 ]
 
 # Translation sources
@@ -118,7 +126,10 @@ i18nSources = pythonSources + [
 ]
 
 # Excluded files
-excludedFiles = []
+excludedFiles = [
+	"**/__pycache__/",
+	"**/*.pyc",
+]
 
 # Base language
 baseLanguage = "es"

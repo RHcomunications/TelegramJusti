@@ -1,6 +1,6 @@
-\# TelegramJusti 1.3.0
+\# TelegramJusti 1.3.1
 
-Complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram Preview 12.10.3.0.
+Complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram Preview (12.10.3.0 y 12.10.4.0 AMD64).
 
 
 
@@ -46,17 +46,62 @@ TelegramJusti amplía la accesibilidad de Telegram mediante atajos de teclado, a
 
 \* NVDA 2026.1 o posterior.
 
-\* Compatible con NVDA 2026.1.1.
-
-\* Arquitectura x64.
-
-\* Telegram Desktop.
-
-\* Unigram.
+## Características
 
 
 
-\## Novedades de la versión 1.3.0
+* Grabación y envío de mensajes de voz.
+
+* Cancelación de grabación de mensajes de voz.
+
+* Reproducción y pausa de audios.
+
+* Llamadas y videollamadas.
+
+* Acceso rápido a perfiles.
+
+* Adjuntar archivos multimedia.
+
+* Creación rápida de nuevos chats.
+
+* Acceso rápido al cuadro de edición de mensajes.
+
+* Volver directamente a la lista de chats.
+
+* Apertura del menú de navegación.
+
+* Enfoque automático en la lista de chats.
+
+* Compatibilidad híbrida con Telegram Desktop y Unigram.
+
+* Gestos reasignables desde Gestos de Entrada de NVDA.
+
+
+
+## Compatibilidad
+
+
+
+* NVDA 2026.1 o posterior.
+
+* Compatible con NVDA 2026.1.1.
+
+* Arquitectura x64.
+
+* Telegram Desktop.
+
+* Unigram (Preview y estable).
+
+
+
+## Novedades de la versión 1.3.1
+
+* Compatibilidad con Unigram Preview 12.10.4.0 AMD64.
+* Enrutamiento híbrido automático: selección inteligente de módulo según el proceso activo (`Telegram.exe` como Unigram Preview o Telegram Desktop).
+* Corrección de compatibilidad con la API de NVDA 2026.2 y resolución de bloqueos en campos de texto y notas de voz.
+* Reorganización canónica de plugins globales (`TelegramJusti`) y tareas de instalación.
+
+## Novedades de la versión 1.3.0
 
 * Compatibilidad con Unigram Preview 12.10.3.0.
 * Actualización de AutomationIDs: se añadieron IDs alternativos para cada control.

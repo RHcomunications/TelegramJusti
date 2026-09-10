@@ -5,7 +5,7 @@ import gui
 
 class TextWindow(wx.Frame):
 
-	def __init__(self, text, title, readOnly=True, insertionPoint=0):
+	def __init__(self, text, title, readOnly=True, insertionPoint=0, *args, **kwargs):
 		super(TextWindow, self).__init__(gui.mainFrame, title=title)
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		style = wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH

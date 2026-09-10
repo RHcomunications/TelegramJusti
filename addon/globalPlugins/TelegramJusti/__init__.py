@@ -1,29 +1,20 @@
 # -*- coding: utf-8 -*-
-import globalPluginHandler
-import globalVars
 import addonHandler
-from scriptHandler import script
-import api
+import globalPluginHandler
 import gui
-from gui import guiHelper, nvdaControls
-from gui.settingsDialogs import SettingsPanel
+from gui import guiHelper
+from scriptHandler import script
 import wx
-import threading
-import os
-from appModules.cnf import conf, listLanguages, lang
-from appModules.unigram import AppModule
-from ui import message
+from gui.settingsDialogs import SettingsPanel
 
+addonHandler.initTranslation()
 
-class GlobalPlugin(globalPluginHandler.GlobalPlugin):
-	scriptCategory = "Telegram Justi"
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(TelegramJustiSettings)
-
-	@script(description=_("Open Telegram Justi settings window"), gesture="kb:NVDA+ALT+U")
-	def script_open_settings_dialog(self, gesture, arg=False):
-		wx.CallAfter(gui.mainFrame._popupSettingsDialog, gui.settingsDialogs.NVDASettingsDialog, TelegramJustiSettings)
+try:
+	from ..appModules.cnf import conf, listLanguages, lang
+except ImportError:
+	conf = None
+	listLanguages = {}
+	lang = "en"
 
 
 class TelegramJustiSettings(SettingsPanel):
@@ -51,59 +42,60 @@ class TelegramJustiSettings(SettingsPanel):
 			_("Interface language in Unigram:"), wx.Choice,
 			choices=list(listLanguages.values())
 		)
-		self.lang.SetStringSelection(listLanguages[conf.get("lang")])
+		self.lang.SetStringSelection(listLanguages.get(conf.get("lang"), "English") if conf else "English")
 		self.voiceTypeAfterChatName = settingsSizerHelper.addLabeledControl(
 			_("Speak the type of chat in the chat list:"), wx.Choice,
 			choices=[self.listVoiceTypeAfterChatName[item] for item in self.listVoiceTypeAfterChatName]
 		)
-		self.voiceTypeAfterChatName.SetStringSelection(self.listVoiceTypeAfterChatName[conf.get("voiceTypeAfterChatName")])
+		self.voiceTypeAfterChatName.SetStringSelection(self.listVoiceTypeAfterChatName.get(conf.get("voiceTypeAfterChatName") if conf else "", _("Before chat name")))
 		self.saySenderName = settingsSizerHelper.addLabeledControl(
 			_("Say the sender's name in:"), wx.Choice,
 			choices=[self.listSaySenderName[item] for item in self.listSaySenderName]
 		)
-		self.saySenderName.SetStringSelection(self.listSaySenderName[conf.get("saySenderName")])
+		self.saySenderName.SetStringSelection(self.listSaySenderName.get(conf.get("saySenderName") if conf else "", _("Do not say at all")))
 		self.action_when_pressing_up_arrow_in_text_field = settingsSizerHelper.addLabeledControl(
 			_("Action when pressing the up arrow in the message edit field"), wx.Choice,
 			choices=list(self.list_actions_when_pressing_up_arrow_in_text_field.values())
 		)
 		self.action_when_pressing_up_arrow_in_text_field.SetStringSelection(
-			self.list_actions_when_pressing_up_arrow_in_text_field[conf.get("action_when_pressing_up_arrow_in_text_field")]
+			self.list_actions_when_pressing_up_arrow_in_text_field.get(conf.get("action_when_pressing_up_arrow_in_text_field") if conf else "", _("Activate editing of last sent message"))
 		)
 		self.unreadBeforeMessageContent = settingsSizerHelper.addItem(
 			wx.CheckBox(self, label=_("Speak \"Not Seen\" before reading contents of a message"))
 		)
-		self.unreadBeforeMessageContent.SetValue(conf.get("unreadBeforeMessageContent"))
+		self.unreadBeforeMessageContent.SetValue(conf.get("unreadBeforeMessageContent") if conf else False)
 		self.voice_the_presence_of_a_reaction = settingsSizerHelper.addItem(
 			wx.CheckBox(self, label=_("Announce if the message contains a reaction"))
 		)
-		self.voice_the_presence_of_a_reaction.SetValue(conf.get("voice_the_presence_of_a_reaction"))
+		self.voice_the_presence_of_a_reaction.SetValue(conf.get("voice_the_presence_of_a_reaction") if conf else True)
 		self.notify_administrators_in_messages = settingsSizerHelper.addItem(
 			wx.CheckBox(self, label=_('Announce the phrases "Administrator" and "Owner" on messages in communities'))
 		)
-		self.notify_administrators_in_messages.SetValue(conf.get("notify_administrators_in_messages"))
+		self.notify_administrators_in_messages.SetValue(conf.get("notify_administrators_in_messages") if conf else True)
 		self.voiceFolderNames = settingsSizerHelper.addItem(
 			wx.CheckBox(self, label=_("Speak folder names when switching between them"))
 		)
-		self.voiceFolderNames.SetValue(conf.get("voiceFolderNames"))
+		self.voiceFolderNames.SetValue(conf.get("voiceFolderNames") if conf else True)
 		self.voiceMessageRecordingIndicator = settingsSizerHelper.addLabeledControl(
 			_("Set voice message recording notification method as:"), wx.Choice,
 			choices=[_("Revert to standard"), _("Text notification"), _("Sound notification")]
 		)
-		self.voiceMessageRecordingIndicator.SetStringSelection(conf.get("voiceMessageRecordingIndicator"))
+		self.voiceMessageRecordingIndicator.SetStringSelection(conf.get("voiceMessageRecordingIndicator") if conf else "audio")
 		self.actionDescriptionForLinks = settingsSizerHelper.addItem(
 			wx.CheckBox(self, label=_("Read description of URLs attached to messages"))
 		)
-		self.actionDescriptionForLinks.SetValue(conf.get("actionDescriptionForLinks"))
+		self.actionDescriptionForLinks.SetValue(conf.get("actionDescriptionForLinks") if conf else True)
 		self.voiceFullDescriptionOfLinkToYoutube = settingsSizerHelper.addItem(
 			wx.CheckBox(self, label=_("Read full video description in YouTube URLs"))
 		)
-		self.voiceFullDescriptionOfLinkToYoutube.SetValue(conf.get("voiceFullDescriptionOfLinkToYoutube"))
+		self.voiceFullDescriptionOfLinkToYoutube.SetValue(conf.get("voiceFullDescriptionOfLinkToYoutube") if conf else True)
 
 	def get_key(self, d, value):
 		for k, v in d.items():
 			if v == value: return k
 
 	def onSave(self):
+		if not conf: return
 		conf.set("lang", self.get_key(listLanguages, self.lang.GetStringSelection()))
 		conf.set("voiceTypeAfterChatName", self.get_key(self.listVoiceTypeAfterChatName, self.voiceTypeAfterChatName.GetStringSelection()))
 		conf.set("saySenderName", self.get_key(self.listSaySenderName, self.saySenderName.GetStringSelection()))
@@ -121,3 +113,21 @@ class TelegramJustiSettings(SettingsPanel):
 			self.list_actions_when_pressing_up_arrow_in_text_field,
 			self.action_when_pressing_up_arrow_in_text_field.GetStringSelection()
 		))
+
+
+class GlobalPlugin(globalPluginHandler.GlobalPlugin):
+	scriptCategory = "Telegram Justi"
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		if TelegramJustiSettings not in gui.settingsDialogs.NVDASettingsDialog.categoryClasses:
+			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(TelegramJustiSettings)
+
+	def terminate(self):
+		if TelegramJustiSettings in gui.settingsDialogs.NVDASettingsDialog.categoryClasses:
+			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(TelegramJustiSettings)
+		super().terminate()
+
+	@script(description=_("Open Telegram Justi settings window"), gesture="kb:NVDA+ALT+U")
+	def script_open_settings_dialog(self, gesture, arg=False):
+		wx.CallAfter(gui.mainFrame._popupSettingsDialog, gui.settingsDialogs.NVDASettingsDialog, TelegramJustiSettings)

@@ -75,7 +75,7 @@ except Exception:
 	try:
 		path = os.path.join(globalVars.appArgs.configPath, "TelegramJusti.ini")
 		if os.path.exists(path):
-			os.remove(path)
+			with open(path, "w") as f: f.truncate()
 		conf = cnf()
 	except Exception:
 		logHandler.log.exception("Error recreating TelegramJusti configuration")

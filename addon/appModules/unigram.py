@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Telegram Justi 1.3.0
-Complemento NVDA para Telegram Unigram Preview 12.10.3.0.
+Telegram Justi 1.3.1
+Complemento NVDA para Telegram Unigram Preview (12.10.3.0 y 12.10.4.0 AMD64).
 Compatible con Unigram Plus features.
 
 Autor: Mauro Ocampo - JustiCode
@@ -20,6 +20,7 @@ import mouseHandler
 import keyboardHandler
 import logHandler
 import scriptHandler
+import appModuleHandler
 import addonHandler
 import editableText
 import textInfos
@@ -31,6 +32,8 @@ import languageHandler
 from NVDAObjects.UIA import UIA, ListItem
 
 initTranslation()
+log = logHandler.log
+MAX_NAME_LENGTH = 2000
 
 from .cnf import conf, lang
 from .data import icons_from_context_menu, labels_for_buttons, labels_in_buttons, phrase_administrator_in_message, keywordsInMessages
@@ -56,16 +59,56 @@ class Message_list_item(ListItem):
 		if scriptHandler.getLastScriptRepeatCount() == 0 and answer: ui.message(answer.name)
 		elif scriptHandler.getLastScriptRepeatCount() == 1 and answer: answer.doAction()
 
+	def extract_message_text(self):
+		"""Extrae recursivamente el texto del mensaje con múltiples niveles de búsqueda."""
+		texts = []
+		recognized = []
+
+		def search(cur):
+			for child in (getattr(cur, "children", []) or []):
+				aid = getattr(child, "UIAAutomationId", "") or ""
+				cname = getattr(child, "name", "") or ""
+				crole = getattr(child, "role", None)
+				if aid == "RecognizedText" and cname:
+					clean_r = cname.strip().replace("‍", "")
+					if clean_r and clean_r not in recognized:
+						recognized.append(clean_r)
+				elif (aid in ("TextBlock", "Message", "Question", "Text", "Content", "Caption", "Subcaption") or crole == Role.STATICTEXT) and cname:
+					clean_t = cname.strip().replace("‍", "")
+					if clean_t and clean_t not in texts:
+						texts.append(clean_t)
+				search(child)
+
+		search(self)
+		if texts or recognized:
+			t = "\n\n".join(texts)
+			r = "\n\n".join(recognized)
+			if t and r:
+				return f"{t}\n\n{r}"
+			return t or r
+
+		# Fallback: extraer texto a partir del nombre accesible del mensaje
+		name = getattr(self, "name", "") or ""
+		if name:
+			clean_name = name.strip().replace("‍", "")
+			idx = getattr(self, "index_last_part_in_message", 0)
+			if idx and idx > 0 and idx < len(clean_name):
+				candidate = clean_name[:idx].strip()
+				if candidate:
+					return candidate
+			return clean_name
+		return ""
+
 	@scriptHandler.script(description=_("Show message text in popup"), gesture="kb:alt+c")
 	def script_show_text_message(self, gesture):
-		text_message = next((item.name for item in self.children if item.UIAAutomationId in ("TextBlock", "Message", "Question")), "")
-		recognized_text = next((item.name for item in self.children if item.UIAAutomationId == "RecognizedText"), "")
-		if not text_message and not recognized_text:
-			ui.message(_("This message does not contain text")); return
-		text_message = text_message.strip().replace("‍", "")
-		recognized_text = recognized_text.strip().replace("‍", "")
-		text = "\n\n".join([text_message, recognized_text]) if text_message and recognized_text else (text_message or recognized_text)
-		TextWindow(text, _("message text"), readOnly=False)
+		text = self.extract_message_text()
+		if not text:
+			ui.message(_("This message does not contain text"))
+			return
+		try:
+			TextWindow(text, _("message text"))
+		except Exception:
+			ui.browseableMessage(text, _("message text"))
 
 	@scriptHandler.script(description=_("Open comments"), gesture="kb:control+alt+c")
 	def script_openComentars(self, gesture):
@@ -131,7 +174,8 @@ class Message_list_item(ListItem):
 
 
 class Saved_items:
-	_items = {}
+	def __init__(self):
+		self._items = {}
 	def get(self, key):
 		focus = api.getFocusObject()
 		if not focus: return False
@@ -179,11 +223,20 @@ class AppModule(appModuleHandler.AppModule):
 		return obj
 
 	def get_first_item(self):
-		try: return api.getForegroundObject().lastChild.previous.firstChild
-		except Exception: return []
+		try:
+			fg = api.getForegroundObject()
+			if not fg or not fg.lastChild or not fg.lastChild.previous:
+				return None
+			return fg.lastChild.previous.firstChild
+		except Exception: return None
 
 	def getElements(self):
-		try: return api.getForegroundObject().lastChild.previous.children
+		try:
+			fg = api.getForegroundObject()
+			if not fg or not fg.lastChild or not fg.lastChild.previous:
+				return []
+			children = fg.lastChild.previous.children
+			return children if children else []
 		except Exception: return []
 
 	def get_settings_panel(self):
@@ -209,15 +262,17 @@ class AppModule(appModuleHandler.AppModule):
 		return branch_list if branch_list else False
 
 	def is_message_object(self, obj):
-		try: return obj.UIAAutomationId == "Message_item"
+		try: return getattr(obj, "UIAAutomationId", None) == "Message_item"
 		except Exception: return False
 
 	def activate_option_for_menu(self, option, list_name=False):
 		if self.execute_context_menu_option: return False
 		obj = api.getFocusObject()
+		if not obj: return False
+		parent_id = getattr(getattr(obj, "parent", None), "UIAAutomationId", None)
 		if list_name == "Messages" and not self.is_message_object(obj): return False
-		elif list_name == "ChatsList" and obj.parent.UIAAutomationId and obj.parent.UIAAutomationId != list_name: return False
-		elif not list_name and (not self.is_message_object(obj) and obj.parent.UIAAutomationId and obj.parent.UIAAutomationId != "ChatsList"): return
+		elif list_name == "ChatsList" and parent_id and parent_id != list_name: return False
+		elif not list_name and (not self.is_message_object(obj) and parent_id and parent_id != "ChatsList"): return
 		self.execute_context_menu_option = option
 		self.keys["Applications"].send()
 
@@ -296,32 +351,38 @@ class AppModule(appModuleHandler.AppModule):
 		sender = ""
 		header = False
 		reactions = []
-		sender_message = "received" if keywords[3] in (obj.name[-200:] if obj.name else "") else "send" if keywords[2] in (obj.name[-200:] if obj.name else "") else ""
-		item = obj.firstChild
+		obj_name = getattr(obj, "name", "") or ""
+		sender_message = "received" if keywords[3] in (obj_name[-200:] if obj_name else "") else "send" if keywords[2] in (obj_name[-200:] if obj_name else "") else ""
+		item = getattr(obj, "firstChild", None)
 		while item:
-			if item.UIAAutomationId == "Question":
+			item_id = getattr(item, "UIAAutomationId", None)
+			item_name = getattr(item, "name", "") or ""
+			if item_id == "Question":
 				options, votes = "", ""
-				for el in obj.children:
-					if el.UIAAutomationId == "Votes": votes = ". " + el.name + ". "
-					elif el.role == Role.TOGGLEBUTTON and el.firstChild.role == Role.PROGRESSBAR:
+				for el in (obj.children or []):
+					el_id = getattr(el, "UIAAutomationId", None)
+					el_name = getattr(el, "name", "") or ""
+					if el_id == "Votes": votes = ". " + el_name + ". "
+					elif getattr(el, "role", None) == Role.TOGGLEBUTTON and getattr(el.firstChild, "role", None) == Role.PROGRESSBAR:
 						if el.childCount == 3: options += self.processing_of_answer_options_in_surveys(el)
-						elif el.childCount == 2: options += el.children[1].name + ", "
+						elif el.childCount == 2 and len(el.children) > 1: options += getattr(el.children[1], "name", "") + ", "
 				if options: options = _("Answer options") + ": " + options
-				obj.name = obj.name.replace(item.name + ", ", item.name + votes + options)
-			elif item.UIAAutomationId == "Subtitle" and len(item.name) < 15 and " / " in item.name:
-				obj.name = item.name + ", " + obj.name.replace(item.name[-5:], "")
-			elif item.role == Role.LIST and item.UIAAutomationId == "Reactions": reactions = item.children
+				obj_name = obj_name.replace(item_name + ", ", item_name + votes + options)
+			elif item_id == "Subtitle" and len(item_name) < 15 and " / " in item_name:
+				obj_name = item_name + ", " + obj_name.replace(item_name[-5:], "")
+			elif getattr(item, "role", None) == Role.LIST and item_id == "Reactions": reactions = item.children or []
 			item = item.next
 		if not conf.get("announce_endthe_message") and hasattr(obj, 'index_last_part_in_message') and obj.index_last_part_in_message:
-			obj.name = obj.name[:obj.index_last_part_in_message]
-		obj.name = sender + obj.name
-		if len(obj.name) > MAX_NAME_LENGTH: obj.name = obj.name[:MAX_NAME_LENGTH]
-		if State.SELECTED in obj.states: obj.name = _("Selected") + ". " + obj.name
+			obj_name = obj_name[:obj.index_last_part_in_message]
+		obj_name = sender + obj_name
+		if len(obj_name) > MAX_NAME_LENGTH: obj_name = obj_name[:MAX_NAME_LENGTH]
+		if State.SELECTED in getattr(obj, "states", set()): obj_name = _("Selected") + ". " + obj_name
 		if conf.get("voice_the_presence_of_a_reaction") and reactions:
 			try:
-				reaction_names = [r.name for r in reactions if r and r.name]
-				if reaction_names: obj.name += "\n" + _("Reactions") + ": " + ", ".join(reaction_names)
+				reaction_names = [r.name for r in reactions if r and getattr(r, 'name', None)]
+				if reaction_names: obj_name += "\n" + _("Reactions") + ": " + ", ".join(reaction_names)
 			except Exception: pass
+		obj.name = obj_name
 		return obj.name
 
 	def processing_of_answer_options_in_surveys(self, obj):
@@ -693,9 +754,10 @@ class AppModule(appModuleHandler.AppModule):
 
 	def deleteMessageAndChat(self, obj, isComplete=False):
 		if not obj: return
+		parent_id = getattr(getattr(obj, "parent", None), "UIAAutomationId", None)
 		if self.is_message_object(obj):
 			self.activate_option_for_menu((icons_from_context_menu["delete"],), "Messages")
-		elif obj.parent.UIAAutomationId == "ChatsList":
+		elif parent_id == "ChatsList":
 			self.activate_option_for_menu((icons_from_context_menu["delete"],), "ChatsList")
 
 	@scriptHandler.script(description=_("Show shortcuts list"), gesture="kb:alt+h")
@@ -707,24 +769,134 @@ class AppModule(appModuleHandler.AppModule):
 			blocks = text.split("\n\n")
 			count_rows = [len(item.split("\n")) for item in blocks]
 			index = count_rows.index(max(count_rows))
-			TextWindow(blocks[index].replace("* ", "").replace("## ", "").strip(), _("List of shortcuts"), readOnly=True)
+			try:
+				TextWindow(blocks[index].replace("* ", "").replace("## ", "").strip(), _("List of shortcuts"))
+			except Exception:
+				ui.browseableMessage(blocks[index].replace("* ", "").replace("## ", "").strip(), _("List of shortcuts"))
 		except Exception: ui.message(_("Could not open help"))
 
 	@scriptHandler.script(description=_("Toggle live chat reading"), gesture="kb:alt+l")
 	def script_toggle_live_chat(self, gesture):
 		ui.message(_("Feature coming soon"))
 
+	@scriptHandler.script(description=_("Show message text in popup"), gesture="kb:alt+c")
+	def script_show_text_message(self, gesture):
+		obj = api.getFocusObject()
+		cur = obj
+		while cur:
+			if hasattr(cur, "extract_message_text"):
+				text = cur.extract_message_text()
+				if text:
+					try:
+						TextWindow(text, _("message text"))
+					except Exception:
+						ui.browseableMessage(text, _("message text"))
+					return
+			cur = getattr(cur, "parent", None)
+
+		if obj:
+			name = getattr(obj, "name", "") or ""
+			if name:
+				try:
+					TextWindow(name, _("message text"))
+				except Exception:
+					ui.browseableMessage(name, _("message text"))
+				return
+		ui.message(_("This message does not contain text"))
+
+	@scriptHandler.script(description=_("Attach files"), gesture="kb:control+shift+a")
+	def script_add_files(self, gesture):
+		button = next((item for item in self.getElements() if getattr(item, "UIAAutomationId", None) in ("ButtonAttach", "Attach")), None)
+		if not button:
+			button = self.findObjectByName(api.getForegroundObject(), "Adjuntar")
+		if button:
+			button.doAction()
+		else:
+			ui.message(_("Button not found"))
+
+	@scriptHandler.script(description=_("New conversation"), gesture="kb:control+n")
+	def script_new_conversation(self, gesture):
+		button = next((item for item in self.getElements() if getattr(item, "UIAAutomationId", None) in ("ComposeButton", "NewConversation", "NewChat")), None)
+		if not button:
+			button = self.findObjectByName(api.getForegroundObject(), "Nuevo chat")
+		if button:
+			button.doAction()
+		else:
+			ui.message(_("Button not found"))
+
+	@scriptHandler.script(description=_("Start voice call"), gesture="kb:shift+alt+c")
+	def script_call(self, gesture):
+		try:
+			targetButton = next((item for item in self.getElements() if (getattr(item, "role", None) == Role.BUTTON and getattr(item, "UIAAutomationId", None) in ("Call", "VoiceCall")) or (getattr(item, "role", None) == Role.LINK and getattr(item, "UIAAutomationId", None) == "GroupCall")), None)
+		except Exception:
+			targetButton = None
+		if not targetButton:
+			targetButton = self.findObjectByName(api.getForegroundObject(), "Llamar")
+		if targetButton:
+			targetButton.doAction()
+		else:
+			ui.message(_("Call unavailable"))
+
+	@scriptHandler.script(description=_("Start video call"), gesture="kb:shift+alt+v")
+	def script_videoCall(self, gesture):
+		targetButton = next((item for item in self.getElements() if getattr(item, "role", None) == Role.BUTTON and getattr(item, "UIAAutomationId", None) == "VideoCall"), None)
+		if not targetButton:
+			targetButton = self.findObjectByName(api.getForegroundObject(), "Videollamada")
+		if targetButton:
+			targetButton.doAction()
+		else:
+			ui.message(_("Video call not available"))
+
+	@scriptHandler.script(description=_("Read profile name and chat status"), gesture="kb:alt+t")
+	def script_read_prifile_name(self, gesture):
+		obj = self.saved_items.get("profile name")
+		if obj and getattr(obj, "name", None):
+			ui.message(obj.name)
+			return
+		for item in self.getElements():
+			if getattr(item, "role", None) == Role.BUTTON and getattr(item, "UIAAutomationId", None) == "Profile":
+				name = getattr(item, "name", "")
+				if name:
+					ui.message(name)
+					return
+		ui.message(_("No open chat"))
+
+	@scriptHandler.script(description=_("Save file as..."))
+	def script_save_file(self, gesture):
+		self.activate_option_for_menu((icons_from_context_menu.get("save_as", ""),), "Messages")
+
+	@scriptHandler.script(description=_("Show more options for chat"))
+	def script_showMoreOptions(self, gesture):
+		targetButton = next((item for item in self.getElements() if getattr(item, "role", None) == Role.BUTTON and getattr(item, "UIAAutomationId", None) in ("Options", "Menu", "Settings", "MoreOptions")), None)
+		if targetButton:
+			targetButton.doAction()
+		else:
+			ui.message(_("Button not found"))
+
+	@scriptHandler.script(description=_("Toggle progress bar reporting"), gesture="kb:alt+u")
+	def script_toggleVoicingPerformanceIndicators(self, gesture):
+		if conf.get("voicingPerformanceIndicators") == "none":
+			conf.set("voicingPerformanceIndicators", "all")
+			ui.message(_("Announce all progress bars"))
+		else:
+			conf.set("voicingPerformanceIndicators", "none")
+			ui.message(_("Do not announce any progress bars"))
+
 	# ========== EVENT HANDLING ==========
 
 	def event_gainFocus(self, obj, nextHandler):
-		if obj.role == Role.LISTITEM:
+		if not obj:
+			nextHandler()
+			return
+		parent_id = getattr(getattr(obj, "parent", None), "UIAAutomationId", None)
+		if getattr(obj, "role", None) == Role.LISTITEM:
 			if self.is_message_object(obj):
-				name = getattr(obj, 'name', "")
-				if name and len(name) > MAX_NAME_LENGTH:
+				name = getattr(obj, 'name', "") or ""
+				if len(name) > MAX_NAME_LENGTH:
 					obj.name = name[:MAX_NAME_LENGTH]
 				self.saved_items.save("last focus object", obj)
 				obj.name = self.action_message_focus(obj)
-			elif obj.parent.UIAAutomationId == "ChatsList":
+			elif parent_id == "ChatsList":
 				self.saved_items.save("last focused chat", obj)
 			elif self.isSkipName:
 				speech.cancelSpeech()
@@ -732,10 +904,13 @@ class AppModule(appModuleHandler.AppModule):
 				return True
 		elif self.isOpenProfile:
 			self.isOpenProfile = False
-			panel = next((item for item in self.getElements() if item.UIAAutomationId == "ScrollingHost"), None)
-			if panel: panel.firstChild.setFocus()
+			panel = next((item for item in self.getElements() if getattr(item, "UIAAutomationId", None) == "ScrollingHost"), None)
+			if panel and panel.firstChild: panel.firstChild.setFocus()
 		elif self.execute_context_menu_option:
-			try: targetButton = next((item for item in obj.parent.children if item.firstChild.name in self.execute_context_menu_option), False)
+			try:
+				parent = getattr(obj, "parent", None)
+				children = parent.children if parent else []
+				targetButton = next((item for item in children if getattr(item.firstChild, "name", None) in self.execute_context_menu_option), False)
 			except Exception: targetButton = False
 			self.execute_context_menu_option = False
 			if targetButton: targetButton.doAction()
@@ -745,11 +920,11 @@ class AppModule(appModuleHandler.AppModule):
 
 	def chooseNVDAObjectOverlayClasses(self, obj, clsList):
 		try:
-			if obj.role == Role.LISTITEM and obj.name and obj.isFocusable:
-				parent = obj.parent
-				if parent and parent.UIAAutomationId == "ChatsList": pass
+			if getattr(obj, "role", None) == Role.LISTITEM and getattr(obj, "name", None) and getattr(obj, "isFocusable", False):
+				parent_id = getattr(getattr(obj, "parent", None), "UIAAutomationId", None)
+				if parent_id == "ChatsList": pass
 				elif self.is_message_object(obj): clsList.insert(0, Message_list_item)
-			elif obj.role == Role.EDITABLETEXT and obj.UIAAutomationId == "TextField":
+			elif getattr(obj, "role", None) == Role.EDITABLETEXT and getattr(obj, "UIAAutomationId", None) == "TextField":
 				clsList.insert(0, EditableTextOverlay)
 		except Exception: pass
 
