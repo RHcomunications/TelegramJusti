@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Telegram Justi 1.3.1
-Complemento NVDA para Telegram Unigram Preview (12.10.3.0 y 12.10.4.0 AMD64).
+Complemento NVDA para Telegram Unigram Preview (12.10.3.0 y 12.10.7.0 AMD64).
 Compatible con Unigram Plus features.
 
 Autor: Mauro Ocampo - JustiCode

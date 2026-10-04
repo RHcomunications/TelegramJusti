@@ -1,6 +1,6 @@
 \# TelegramJusti 1.3.1
 
-Complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram Preview (12.10.3.0 y 12.10.4.0 AMD64).
+Complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram Preview (12.10.3.0 y 12.10.7.0 AMD64).
 
 
 
@@ -96,7 +96,7 @@ TelegramJusti amplía la accesibilidad de Telegram mediante atajos de teclado, a
 
 ## Novedades de la versión 1.3.1
 
-* Compatibilidad con Unigram Preview 12.10.4.0 AMD64.
+* Compatibilidad con Unigram Preview 12.10.7.0 AMD64.
 * Enrutamiento híbrido automático: selección inteligente de módulo según el proceso activo (`Telegram.exe` como Unigram Preview o Telegram Desktop).
 * Corrección de compatibilidad con la API de NVDA 2026.2 y resolución de bloqueos en campos de texto y notas de voz.
 * Reorganización canónica de plugins globales (`TelegramJusti`) y tareas de instalación.

@@ -19,18 +19,18 @@ addon_info = AddonInfo(
 	addon_name="TelegramJusti",
 
 	addon_summary=_(
-    "TelegramJusti complemento híbrido de accesibilidad compatible con Unigram Preview (12.10.3.0 - 12.10.4.0) y Telegram Desktop"
+    "TelegramJusti complemento híbrido de accesibilidad compatible con Unigram Preview (12.10.3.0 - 12.10.7.0) y Telegram Desktop"
 ),
 
 	# Add-on description
 	addon_description=_(
-    """TelegramJusti es un complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram Preview (12.10.3.0 y 12.10.4.0 AMD64).
+    """TelegramJusti es un complemento híbrido de accesibilidad compatible con Telegram Desktop y Unigram Preview (12.10.3.0 y 12.10.7.0 AMD64).
 
 Proporciona atajos de teclado, automatización accesible y navegación optimizada para usuarios de NVDA.
 
 Incluye funciones para mensajes de voz, llamadas, videollamadas, navegación rápida entre chats, acceso a perfiles y adjuntos multimedia.
 
-Compatible con Unigram Preview 12.10.3.0 y 12.10.4.0 AMD64.
+Compatible con Unigram Preview 12.10.3.0 y 12.10.7.0 AMD64.
 Los gestos son personalizables desde Gestos de Entrada de NVDA."""
 ),
 
@@ -43,7 +43,7 @@ addon_changelog=_(
 
   Novedades:
 
-  * Compatibilidad con Unigram Preview 12.10.4.0 AMD64.
+  * Compatibilidad con Unigram Preview 12.10.7.0 AMD64.
   * Enrutamiento híbrido automático: selección transparente entre Unigram Preview (UWP) y Telegram Desktop (Qt).
   * Corrección de importaciones y variables críticas para compatibilidad con NVDA 2026.2.
   * Reestructuración canónica de plugins globales (TelegramJusti) y tareas de instalación según los estándares de NVDA.
